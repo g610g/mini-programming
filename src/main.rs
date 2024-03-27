@@ -1,4 +1,4 @@
-use mini_programming::utils;
+use mini_programming::{core, utils};
 fn main() {
     foo("test");
 }
@@ -7,7 +7,8 @@ fn foo(_my_str: &str) {
 
     let filtered_string: String = utils::clear_whitespaces(&white_space_test);
     println!("{}", filtered_string);
-    bar("sorround this with qoutest");
+    core::print(&"println".to_string());
+    //bar("sorround this with qoutest");
 }
 fn bar(my_str: &str) {
     println!("{my_str}");
