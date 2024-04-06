@@ -5,23 +5,20 @@ pub mod utils {
     }
 }
 pub mod core {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, error::Error, fs};
 
-    enum Syntax {
-        Print(char),
-        Operation(char),
+    use serde::{Deserialize, Serialize};
+    struct Syntax {}
+    #[derive(Serialize, Deserialize, Debug)]
+    struct Print {
+        states: HashMap<String, HashMap<String, String>>,
     }
-    #[derive(Debug)]
-    struct State {
-        table_state: HashMap<String, HashMap<String, String>>,
-        traversed_state: Vec<String>,
-        final_state: String,
+    pub fn init() -> Result<(), Box<dyn Error>> {
+        let syntax_path = "assets/syntax.json";
+        let syntax_string = fs::read_to_string(syntax_path)?;
+        let print: Print = serde_json::from_str(&syntax_string)?;
+        //println!("{:?}", print);
+        println!("{:?}", print.states.get("s1"));
+        Ok(())
     }
-    pub fn run(filtered_string: &str) {}
-    //the funtion that will check if the syntax for print is valid or not
-    pub fn print(s: &str) {
-        let mut current_state_char: &char = &s.chars().nth(0).unwrap();
-        println!("{current_state_char}");
-    }
-    pub fn init_states() {}
 }
