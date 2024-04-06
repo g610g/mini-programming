@@ -1,22 +1,25 @@
 pub mod utils {
+    use std::{error::Error, fs::File, io::BufReader};
     //clear whitespaces of the string parameter and returns a new string
     pub fn clear_whitespaces(s: &str) -> String {
         s.chars().filter(|c| !c.is_whitespace()).collect()
     }
+    //reads file and returns the BufReader instance for reading each line in the text
+    pub fn read_file(filename: &str) -> Result<BufReader<File>, Box<dyn Error>> {
+        let file = File::open(filename)?;
+        let reader = BufReader::new(file);
+        Ok(reader)
+    }
 }
 pub mod core {
     use serde::{Deserialize, Serialize};
-    use std::{
-        collections::HashMap,
-        error::Error,
-        fs::{self, File},
-        io::{BufRead, BufReader},
-    };
+    use std::{collections::HashMap, error::Error, fs, io::BufRead};
     #[warn(dead_code)]
     struct Syntax {}
     #[derive(Serialize, Deserialize, Debug)]
     struct Print {
-        states: HashMap<String, HashMap<String, String>>,
+        states: HashMap<String, HashMap<char, String>>,
+        accept_state: String,
     }
     pub fn start(filename: &str) -> Result<(), Box<dyn Error>> {
         let print_struct: Print;
@@ -26,6 +29,7 @@ pub mod core {
             Ok(p) => {
                 print_struct = p;
                 struct_empty = false;
+                //println!("{:?}", print_struct);
             }
             Err(e) => {
                 println!("Error: {}", e);
@@ -41,9 +45,9 @@ pub mod core {
             return Err("file does not exist in the directory assets!".into());
         } else {
             //read the syntax of it
-            let reader = read_file(&modifed_filename)?;
-            for lines in reader.lines() {
-                println!("{}", lines?);
+            let reader = super::utils::read_file(&modifed_filename)?;
+            for line in reader.lines() {
+                process(&print_struct, line?)
             }
             return Ok(());
         }
@@ -54,9 +58,21 @@ pub mod core {
         let print: Print = serde_json::from_str(&syntax_string)?;
         Ok(print)
     }
-    fn read_file(filename: &str) -> Result<(BufReader<File>), Box<dyn Error>> {
-        let file = File::open(filename)?;
-        let reader = BufReader::new(file);
-        Ok(reader)
+    #[warn(dead_code)]
+    //processes the syntax_syntax based on the print syntax of my langauge
+    fn process(print_struct: &Print, syntax_string: String) {
+        let mut state: &str = "s1";
+        for character in syntax_string.chars() {
+            //start from the starting state and move through on each syntax
+            state = print_struct
+                .states
+                .get(state)
+                .unwrap()
+                .get(&character)
+                .unwrap();
+        }
+        if state == print_struct.accept_state {
+            println!("Syntax accepted!");
+        }
     }
 }
