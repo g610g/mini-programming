@@ -11,8 +11,9 @@ pub mod core {
         Print(char),
         Operation(char),
     }
+    #[derive(Debug)]
     struct State {
-        table_state: HashMap<String, String>,
+        table_state: HashMap<String, HashMap<String, String>>,
         traversed_state: Vec<String>,
         final_state: String,
     }
@@ -21,7 +22,6 @@ pub mod core {
     pub fn print(s: &str) {
         let mut current_state_char: &char = &s.chars().nth(0).unwrap();
         println!("{current_state_char}");
-        // for character in s.chars(){}
     }
     pub fn init_states() {}
 }
