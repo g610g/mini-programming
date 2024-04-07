@@ -12,6 +12,7 @@ pub mod utils {
     }
 }
 pub mod core {
+    use crate::utils;
     use serde::{Deserialize, Serialize};
     use std::{collections::HashMap, error::Error, fs, io::BufRead};
     #[warn(dead_code)]
@@ -20,6 +21,7 @@ pub mod core {
     struct Print {
         states: HashMap<String, HashMap<char, String>>,
         accept_state: String,
+        syntax_characters: Vec<char>,
     }
     pub fn start(filename: &str) -> Result<(), Box<dyn Error>> {
         let print_struct: Print;
@@ -29,7 +31,6 @@ pub mod core {
             Ok(p) => {
                 print_struct = p;
                 struct_empty = false;
-                //println!("{:?}", print_struct);
             }
             Err(e) => {
                 println!("Error: {}", e);
@@ -37,8 +38,7 @@ pub mod core {
             }
         }
         if struct_empty {
-            println!("hello world");
-            return Err("THIS WILL BE HANDLED".into());
+            return Err("Struct is is empty".into());
         }
         //modify by appending .txt into the filename passed
         if !fs::metadata(&modifed_filename)?.is_file() {
@@ -47,31 +47,37 @@ pub mod core {
             //read the syntax of it
             let reader = super::utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
-                process(&print_struct, line?)
+                let line = line?;
+                process(&print_struct, utils::clear_whitespaces(&line));
             }
             return Ok(());
         }
     }
+    //initializes the syntax table from the json file
     fn init() -> Result<Print, Box<dyn Error>> {
         let syntax_path = "assets/syntax.json";
         let syntax_string = fs::read_to_string(syntax_path)?;
         let print: Print = serde_json::from_str(&syntax_string)?;
         Ok(print)
     }
-    #[warn(dead_code)]
     //processes the syntax_syntax based on the print syntax of my langauge
     fn process(print_struct: &Print, syntax_string: String) {
         let mut state: &str = "s1";
         for character in syntax_string.chars() {
             //start from the starting state and move through on each syntax
-            state = print_struct
-                .states
-                .get(state)
-                .unwrap()
-                .get(&character)
-                .unwrap();
+            if !print_struct.syntax_characters.contains(&character) {
+                state = print_struct.states.get(state).unwrap().get(&'@').unwrap();
+            } else {
+                state = print_struct
+                    .states
+                    .get(state)
+                    .unwrap()
+                    .get(&character)
+                    .unwrap();
+            }
         }
         if state == print_struct.accept_state {
+            //do the thing it should do maybe print the content within the qoutation marks ""
             println!("Syntax accepted!");
         }
     }
