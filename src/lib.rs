@@ -1,7 +1,8 @@
 pub mod utils {
-    use std::{error::Error, fs::File, io::BufReader, process, usize};
+    use std::{error::Error, fs::File, io::BufReader, usize};
     //clear whitespaces of the string parameter and returns a new string
-    pub fn clear_whitespaces(s: String) -> Result<String, &'static str> {
+    pub fn clear_whitespaces_print(s: String) -> Result<String, &'static str> {
+        //clears white spaces except string within the qoute
         let index_bounds = find_index_bound('\"', &s);
         if index_bounds.len() < 2 {
             Err("SYNTAX ERROR!")
@@ -35,20 +36,30 @@ pub mod core {
     use serde::{Deserialize, Serialize};
     use std::{collections::HashMap, error::Error, fs, io::BufRead};
     #[warn(dead_code)]
-    struct Syntax {}
+    #[derive(Serialize, Deserialize, Debug)]
+    struct Syntax {
+        print: Print,
+        operation: Operation,
+    }
     #[derive(Serialize, Deserialize, Debug)]
     struct Print {
         states: HashMap<String, HashMap<char, String>>,
         accept_state: String,
         syntax_characters: Vec<char>,
     }
+    #[derive(Serialize, Deserialize, Debug)]
+    struct Operation {
+        states: HashMap<String, HashMap<char, String>>,
+        accept_state: String,
+        syntax_characters: Vec<char>,
+    }
     pub fn start(filename: &str) -> Result<(), Box<dyn Error>> {
-        let print_struct: Print;
+        let syntax: Syntax;
         let mut struct_empty = true;
-        let modifed_filename = "assets/".to_string() + filename;
+        let mut modifed_filename = "assets/".to_string() + filename;
         match init() {
-            Ok(p) => {
-                print_struct = p;
+            Ok(s) => {
+                syntax = s;
                 struct_empty = false;
             }
             Err(e) => {
@@ -60,34 +71,47 @@ pub mod core {
             return Err("Struct is empty".into());
         }
         //modify by appending .txt into the filename passed
-        if !fs::metadata(&modifed_filename)?.is_file() {
-            return Err("file does not exist in the directory assets!".into());
+        let file_meta: fs::Metadata;
+        match fs::metadata(&modifed_filename) {
+            Ok(meta) => file_meta = meta,
+            Err(_e) => {
+                modifed_filename = modifed_filename + ".txt";
+                if let Ok(meta) = fs::metadata(&modifed_filename) {
+                    file_meta = meta;
+                } else {
+                    return Err("cannot find directory or file".into());
+                }
+            }
+        }
+        if !file_meta.is_file() {
+            return Err("file name is not a file".into());
         } else {
             //read the syntax of it
             let reader = utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
-                let line = utils::clear_whitespaces(line?)?;
-                process(&print_struct, line)?;
+                let line = utils::clear_whitespaces_print(line?)?;
+                process_print(&syntax, line)?;
             }
             return Ok(());
         }
     }
     //prepares program to deserialize table from the json file
-    fn init() -> Result<Print, Box<dyn Error>> {
+    fn init() -> Result<Syntax, Box<dyn Error>> {
         let syntax_path = "assets/syntax.json";
         let syntax_string = fs::read_to_string(syntax_path)?;
-        let print: Print = serde_json::from_str(&syntax_string)?;
-        Ok(print)
+        let syntax: Syntax = serde_json::from_str(&syntax_string)?;
+        Ok(syntax)
     }
     //processes the syntax_syntax based on the print syntax of my langauge
-    fn process(print_struct: &Print, syntax_string: String) -> Result<(), Box<dyn Error>> {
+    fn process_print(syntax: &Syntax, syntax_string: String) -> Result<(), Box<dyn Error>> {
         let mut state: &str = "s1";
         for character in syntax_string.chars() {
             //start from the starting state and move through on each syntax
-            if !print_struct.syntax_characters.contains(&character) {
-                state = print_struct.states.get(state).unwrap().get(&'@').unwrap();
+            if !syntax.print.syntax_characters.contains(&character) {
+                state = syntax.print.states.get(state).unwrap().get(&'@').unwrap();
             } else {
-                state = print_struct
+                state = syntax
+                    .print
                     .states
                     .get(state)
                     .unwrap()
@@ -95,7 +119,7 @@ pub mod core {
                     .unwrap();
             }
         }
-        if state != print_struct.accept_state {
+        if state != syntax.print.accept_state {
             return Err("SYNTAX MAY BE WRONG!".into());
         } else {
             //finds the index of the string to be matched
@@ -114,5 +138,16 @@ pub mod core {
             print!("{}", string_print);
             Ok(())
         }
+    }
+    fn process_operation(op: &Operation, string_operation: String) {
+        let mut state: &str = "s1";
+        for character in string_operation.chars() {
+            if character.is_numeric() {
+                state = op.states.get(state).unwrap().get(&'@').unwrap();
+            } else {
+                state = op.states.get(state).unwrap().get(&character).unwrap();
+            }
+        }
+        println!("{}", string_operation);
     }
 }
