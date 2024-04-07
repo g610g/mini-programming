@@ -18,6 +18,9 @@ pub mod utils {
                 .collect())
         }
     }
+    pub fn clear_white_spaces(s: String) -> String {
+        s.chars().filter(|c| !c.is_whitespace()).collect()
+    }
     //reads file and returns the BufReader instance for reading each line in the text
     pub fn read_file(filename: &str) -> Result<BufReader<File>, Box<dyn Error>> {
         let file = File::open(filename)?;
@@ -34,7 +37,7 @@ pub mod utils {
 pub mod core {
     use crate::utils;
     use serde::{Deserialize, Serialize};
-    use std::{collections::HashMap, error::Error, fs, io::BufRead};
+    use std::{char, collections::HashMap, error::Error, fs, io::BufRead, string};
     #[warn(dead_code)]
     #[derive(Serialize, Deserialize, Debug)]
     struct Syntax {
@@ -52,6 +55,14 @@ pub mod core {
         states: HashMap<String, HashMap<char, String>>,
         accept_state: String,
         syntax_characters: Vec<char>,
+    }
+    #[derive(Debug)]
+    enum Operator {
+        Add(String),
+        Substract(String),
+        Multiply(String),
+        Divide(String),
+        Modulo(String),
     }
     pub fn start(filename: &str) -> Result<(), Box<dyn Error>> {
         let syntax: Syntax;
@@ -89,13 +100,14 @@ pub mod core {
             //read the syntax of it
             let reader = utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
-                let line = utils::clear_whitespaces_print(line?)?;
-                process_print(&syntax, line)?;
+                //let line = utils::clear_whitespaces_print(line?)?;
+                let line = line?;
+                process_operation(&syntax.operation, line);
+                //process_print(&syntax, line)?;
             }
             return Ok(());
         }
     }
-    //prepares program to deserialize table from the json file
     fn init() -> Result<Syntax, Box<dyn Error>> {
         let syntax_path = "assets/syntax.json";
         let syntax_string = fs::read_to_string(syntax_path)?;
@@ -139,8 +151,12 @@ pub mod core {
             Ok(())
         }
     }
-    fn process_operation(op: &Operation, string_operation: String) {
+    fn process_operation(
+        op: &Operation,
+        mut string_operation: String,
+    ) -> Result<(), Box<dyn Error>> {
         let mut state: &str = "s1";
+        string_operation = utils::clear_white_spaces(string_operation);
         for character in string_operation.chars() {
             if character.is_numeric() {
                 state = op.states.get(state).unwrap().get(&'@').unwrap();
@@ -148,6 +164,33 @@ pub mod core {
                 state = op.states.get(state).unwrap().get(&character).unwrap();
             }
         }
-        println!("{}", string_operation);
+        if state != op.accept_state {
+            return Err("Syntax Error".into());
+        }
+        let operator = extract_operator(&string_operation);
+        println!("{:?}", operator);
+        let numeric_string: String = string_operation
+            .chars()
+            .map(|c| if !c.is_numeric() { ' ' } else { c })
+            .collect();
+        let splitted: Vec<_> = numeric_string.split(" ").collect();
+        Ok(())
+    }
+    fn extract_operator(string_operation: &str) -> Operator {
+        let operator: String = string_operation
+            .chars()
+            .filter(|e| !e.is_numeric())
+            .collect();
+        if operator == "+" {
+            return Operator::Add(operator);
+        } else if operator == "-" {
+            return Operator::Substract(operator);
+        } else if operator == "*" {
+            return Operator::Multiply(operator);
+        } else if operator == "/" {
+            return Operator::Divide(operator);
+        } else {
+            return Operator::Modulo(operator);
+        }
     }
 }
