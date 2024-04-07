@@ -1,4 +1,5 @@
 pub mod utils {
+    use core::f64;
     use std::{error::Error, fs::File, io::BufReader, usize};
     //clear whitespaces of the string parameter and returns a new string
     pub fn clear_whitespaces_print(s: String) -> Result<String, &'static str> {
@@ -33,12 +34,15 @@ pub mod utils {
             .map(|(index, _)| index)
             .collect()
     }
+    pub fn is_float(float_string: &str) -> bool {
+        float_string.parse::<f32>().is_ok() || float_string.parse::<f64>().is_ok()
+    }
 }
 pub mod core {
     use super::core::Operator::*;
     use crate::utils;
     use serde::{Deserialize, Serialize};
-    use std::{char, collections::HashMap, error::Error, fs, io::BufRead, string};
+    use std::{char, collections::HashMap, error::Error, fs, io::BufRead, process};
     #[warn(dead_code)]
     #[derive(Serialize, Deserialize, Debug)]
     struct Syntax {
@@ -156,9 +160,12 @@ pub mod core {
         mut string_operation: String,
     ) -> Result<(), Box<dyn Error>> {
         let mut state: &str = "s1";
+        let mut is_float = false;
+        //let numeric_test = String::from("1230.13");
+        //let numeric_number = numeric_test.parse::<i32>().unwrap();
         string_operation = utils::clear_white_spaces(string_operation);
         for character in string_operation.chars() {
-            if character.is_numeric() {
+            if character.is_numeric() || (character == '.') {
                 state = op.states.get(state).unwrap().get(&'@').unwrap();
             } else {
                 state = op.states.get(state).unwrap().get(&character).unwrap();
@@ -170,12 +177,25 @@ pub mod core {
 
         let numeric_string: String = string_operation
             .chars()
-            .map(|c| if !c.is_numeric() { ' ' } else { c })
+            .map(|c| if !c.is_numeric() && c != '.' { ' ' } else { c })
             .collect();
+        println!("{:?}", numeric_string);
+        numeric_string.split(" ").for_each(|s| {
+            if s.contains(".") {
+                is_float = true
+            } else {
+                is_float = false
+            }
+        });
+        if is_float {
+            println!("{}", is_float);
+            process::exit(1);
+        }
         let splitted: Vec<_> = numeric_string
             .split(" ")
             .map(|s| s.parse::<i32>().unwrap())
             .collect();
+
         //println!("{:?}", splitted);
         let operator = extract_operator(&string_operation);
         //println!("{:?}", operator);
@@ -214,6 +234,7 @@ pub mod core {
         }
         Ok(())
     }
+    fn perform_operation() {}
     fn extract_operator(string_operation: &str) -> Operator {
         let operator: String = string_operation
             .chars()
