@@ -54,12 +54,12 @@ pub mod core {
             let reader = utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
                 let line = line?;
-                process(&print_struct, utils::clear_whitespaces(&line));
+                process(&print_struct, utils::clear_whitespaces(&line))?;
             }
             return Ok(());
         }
     }
-    //initializes the syntax table from the json file
+    //prepares program to deserialize table from the json file
     fn init() -> Result<Print, Box<dyn Error>> {
         let syntax_path = "assets/syntax.json";
         let syntax_string = fs::read_to_string(syntax_path)?;
@@ -67,7 +67,7 @@ pub mod core {
         Ok(print)
     }
     //processes the syntax_syntax based on the print syntax of my langauge
-    fn process(print_struct: &Print, syntax_string: String) {
+    fn process(print_struct: &Print, syntax_string: String) -> Result<(), Box<dyn Error>> {
         let mut state: &str = "s1";
         for character in syntax_string.chars() {
             //start from the starting state and move through on each syntax
@@ -82,10 +82,12 @@ pub mod core {
                     .unwrap();
             }
         }
-        if state == print_struct.accept_state {
-            //do the thing it should do maybe print the content within the qoutation marks ""
+        if state != print_struct.accept_state {
+            return Err("SYNTAX MAY BE WRONG!".into());
+        } else {
             //finds the index of the string to be matched
             let indices = utils::find_index_bound('\"', &syntax_string);
+            //filters using iterator to only retain the character within the qoute mark exclusive ""
             let string_print: String = syntax_string
                 .char_indices()
                 .filter_map(|(index, character)| {
@@ -97,6 +99,7 @@ pub mod core {
                 })
                 .collect();
             println!("{}", string_print);
+            Ok(())
         }
     }
 }

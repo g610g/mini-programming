@@ -1,6 +1,5 @@
-use std::process;
-
 use mini_programming::core;
+use std::process;
 fn main() {
     match core::start("file.txt") {
         Ok(()) => {}
