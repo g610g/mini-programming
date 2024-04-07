@@ -1,8 +1,21 @@
 pub mod utils {
-    use std::{error::Error, fs::File, io::BufReader, usize};
+    use std::{error::Error, fs::File, io::BufReader, process, usize};
     //clear whitespaces of the string parameter and returns a new string
-    pub fn clear_whitespaces(s: &str) -> String {
-        s.chars().filter(|c| !c.is_whitespace()).collect()
+    pub fn clear_whitespaces(s: String) -> Result<String, &'static str> {
+        let index_bounds = find_index_bound('\"', &s);
+        if index_bounds.len() < 2 {
+            Err("SYNTAX ERROR!")
+        } else {
+            Ok(s.char_indices()
+                .filter_map(|(index, c)| {
+                    if c.is_whitespace() && (index < index_bounds[0] || index > index_bounds[1]) {
+                        None
+                    } else {
+                        Some(c)
+                    }
+                })
+                .collect())
+        }
     }
     //reads file and returns the BufReader instance for reading each line in the text
     pub fn read_file(filename: &str) -> Result<BufReader<File>, Box<dyn Error>> {
@@ -53,8 +66,8 @@ pub mod core {
             //read the syntax of it
             let reader = utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
-                let line = line?;
-                process(&print_struct, utils::clear_whitespaces(&line))?;
+                let line = utils::clear_whitespaces(line?)?;
+                process(&print_struct, line)?;
             }
             return Ok(());
         }
@@ -98,7 +111,7 @@ pub mod core {
                     }
                 })
                 .collect();
-            println!("{}", string_print);
+            print!("{}", string_print);
             Ok(())
         }
     }
