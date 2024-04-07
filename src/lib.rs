@@ -1,5 +1,5 @@
 pub mod utils {
-    use std::{error::Error, fs::File, io::BufReader};
+    use std::{error::Error, fs::File, io::BufReader, usize};
     //clear whitespaces of the string parameter and returns a new string
     pub fn clear_whitespaces(s: &str) -> String {
         s.chars().filter(|c| !c.is_whitespace()).collect()
@@ -9,6 +9,12 @@ pub mod utils {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
         Ok(reader)
+    }
+    pub fn find_index_bound(character_pattern: char, search_string: &str) -> Vec<usize> {
+        search_string
+            .match_indices(character_pattern)
+            .map(|(index, _)| index)
+            .collect()
     }
 }
 pub mod core {
@@ -38,14 +44,14 @@ pub mod core {
             }
         }
         if struct_empty {
-            return Err("Struct is is empty".into());
+            return Err("Struct is empty".into());
         }
         //modify by appending .txt into the filename passed
         if !fs::metadata(&modifed_filename)?.is_file() {
             return Err("file does not exist in the directory assets!".into());
         } else {
             //read the syntax of it
-            let reader = super::utils::read_file(&modifed_filename)?;
+            let reader = utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
                 let line = line?;
                 process(&print_struct, utils::clear_whitespaces(&line));
@@ -78,7 +84,19 @@ pub mod core {
         }
         if state == print_struct.accept_state {
             //do the thing it should do maybe print the content within the qoutation marks ""
-            println!("Syntax accepted!");
+            //finds the index of the string to be matched
+            let indices = utils::find_index_bound('\"', &syntax_string);
+            let string_print: String = syntax_string
+                .char_indices()
+                .filter_map(|(index, character)| {
+                    if index > indices[0] && index < indices[1] {
+                        Some(character)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            println!("{}", string_print);
         }
     }
 }
