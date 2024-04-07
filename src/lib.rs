@@ -35,6 +35,7 @@ pub mod utils {
     }
 }
 pub mod core {
+    use super::core::Operator::*;
     use crate::utils;
     use serde::{Deserialize, Serialize};
     use std::{char, collections::HashMap, error::Error, fs, io::BufRead, string};
@@ -134,7 +135,6 @@ pub mod core {
         if state != syntax.print.accept_state {
             return Err("SYNTAX MAY BE WRONG!".into());
         } else {
-            //finds the index of the string to be matched
             let indices = utils::find_index_bound('\"', &syntax_string);
             //filters using iterator to only retain the character within the qoute mark exclusive ""
             let string_print: String = syntax_string
@@ -167,13 +167,51 @@ pub mod core {
         if state != op.accept_state {
             return Err("Syntax Error".into());
         }
-        let operator = extract_operator(&string_operation);
-        println!("{:?}", operator);
+
         let numeric_string: String = string_operation
             .chars()
             .map(|c| if !c.is_numeric() { ' ' } else { c })
             .collect();
-        let splitted: Vec<_> = numeric_string.split(" ").collect();
+        let splitted: Vec<_> = numeric_string
+            .split(" ")
+            .map(|s| s.parse::<i32>().unwrap())
+            .collect();
+        //println!("{:?}", splitted);
+        let operator = extract_operator(&string_operation);
+        //println!("{:?}", operator);
+        match operator {
+            Add(_a) => {
+                println!("{}", splitted.iter().sum::<i32>());
+            }
+            Multiply(_m) => {
+                println!("{}", splitted.iter().product::<i32>());
+            }
+            Substract(_s) => {
+                let mut split_iter = splitted.into_iter();
+                let mut difference: i32 = split_iter.next().unwrap();
+                for element in split_iter {
+                    difference -= element;
+                }
+                println!("{}", difference);
+            }
+            Divide(_d) => {
+                let mut split_iter = splitted.into_iter();
+                let mut qoutient: i32 = split_iter.next().unwrap();
+                for element in split_iter {
+                    qoutient /= element;
+                }
+                println!("{}", qoutient);
+            }
+            Modulo(_mo) => {
+                let mut split_iter = splitted.into_iter();
+                let mut result: i32 = split_iter.next().unwrap();
+                for element in split_iter {
+                    result %= element;
+                }
+                println!("{}", result);
+            }
+            _ => {}
+        }
         Ok(())
     }
     fn extract_operator(string_operation: &str) -> Operator {
@@ -182,15 +220,15 @@ pub mod core {
             .filter(|e| !e.is_numeric())
             .collect();
         if operator == "+" {
-            return Operator::Add(operator);
+            return Add(operator);
         } else if operator == "-" {
-            return Operator::Substract(operator);
+            return Substract(operator);
         } else if operator == "*" {
-            return Operator::Multiply(operator);
+            return Multiply(operator);
         } else if operator == "/" {
-            return Operator::Divide(operator);
+            return Divide(operator);
         } else {
-            return Operator::Modulo(operator);
+            return Modulo(operator);
         }
     }
 }
