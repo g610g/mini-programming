@@ -114,10 +114,13 @@ pub mod core {
             //read the syntax of it
             let reader = utils::read_file(&modifed_filename)?;
             for line in reader.lines() {
-                //let line = utils::clear_whitespaces_print(line?)?;
                 let line = line?;
-                process_operation(&syntax.operation, line)?;
-                //process_print(&syntax, line)?;
+                let first_element = line.chars().nth(0).unwrap();
+                if first_element.is_numeric() {
+                    process_operation(&syntax.operation, line)?;
+                } else {
+                    process_print(&syntax, line)?;
+                }
             }
             return Ok(());
         }
@@ -189,8 +192,12 @@ pub mod core {
         if utils::is_float(&numeric_string) {
             float_operation(operator, &numeric_string);
             return Ok(());
+        } else {
+            i32_operation(operator, &numeric_string)?;
         }
-        //will only return number that is parsable as i32
+        Ok(())
+    }
+    fn i32_operation(operator: Operator, numeric_string: &str) -> Result<(), Box<dyn Error>> {
         let splitted: Vec<_> = numeric_string
             .split(" ")
             .filter_map(|s| s.parse::<i32>().ok())
@@ -198,16 +205,15 @@ pub mod core {
         if splitted.len() < 2 {
             return Err("The operand must be at the same data type".into());
         }
-
+        let mut split_iter = splitted.into_iter();
         match operator {
             Add(_a) => {
-                println!("{}", splitted.iter().sum::<i32>());
+                println!("{}", split_iter.sum::<i32>());
             }
             Multiply(_m) => {
-                println!("{}", splitted.iter().product::<i32>());
+                println!("{}", split_iter.product::<i32>());
             }
             Substract(_s) => {
-                let mut split_iter = splitted.into_iter();
                 let mut difference: i32 = split_iter.next().unwrap();
                 for element in split_iter {
                     difference -= element;
@@ -215,7 +221,6 @@ pub mod core {
                 println!("{}", difference);
             }
             Divide(_d) => {
-                let mut split_iter = splitted.into_iter();
                 let mut qoutient: i32 = split_iter.next().unwrap();
                 for element in split_iter {
                     qoutient /= element;
@@ -223,7 +228,6 @@ pub mod core {
                 println!("{}", qoutient);
             }
             Modulo(_mo) => {
-                let mut split_iter = splitted.into_iter();
                 let mut result: i32 = split_iter.next().unwrap();
                 for element in split_iter {
                     result %= element;
@@ -233,7 +237,6 @@ pub mod core {
         }
         Ok(())
     }
-    fn perform_operation() {}
     fn float_operation(operator: Operator, numeric_string: &str) {
         let splitted: Vec<_> = numeric_string
             .split(" ")
