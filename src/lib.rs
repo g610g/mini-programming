@@ -34,13 +34,22 @@ pub mod utils {
             .map(|(index, _)| index)
             .collect()
     }
-    pub fn is_float(float_string: &str) -> bool {
-        float_string.parse::<f32>().is_ok() || float_string.parse::<f64>().is_ok()
+    pub fn is_float(numeric_string: &str) -> bool {
+        let mut is_float = true;
+        numeric_string.split(" ").for_each(|s| {
+            if s.contains(".") {
+                is_float = true && is_float
+            } else {
+                is_float = false && is_float
+            }
+        });
+        return is_float;
     }
 }
 pub mod core {
     use super::core::Operator::*;
     use crate::utils;
+    use core::{f32, f64};
     use serde::{Deserialize, Serialize};
     use std::{char, collections::HashMap, error::Error, fs, io::BufRead, process};
     #[warn(dead_code)]
@@ -107,7 +116,7 @@ pub mod core {
             for line in reader.lines() {
                 //let line = utils::clear_whitespaces_print(line?)?;
                 let line = line?;
-                process_operation(&syntax.operation, line);
+                process_operation(&syntax.operation, line)?;
                 //process_print(&syntax, line)?;
             }
             return Ok(());
@@ -160,9 +169,6 @@ pub mod core {
         mut string_operation: String,
     ) -> Result<(), Box<dyn Error>> {
         let mut state: &str = "s1";
-        let mut is_float = false;
-        //let numeric_test = String::from("1230.13");
-        //let numeric_number = numeric_test.parse::<i32>().unwrap();
         string_operation = utils::clear_white_spaces(string_operation);
         for character in string_operation.chars() {
             if character.is_numeric() || (character == '.') {
@@ -179,26 +185,20 @@ pub mod core {
             .chars()
             .map(|c| if !c.is_numeric() && c != '.' { ' ' } else { c })
             .collect();
-        println!("{:?}", numeric_string);
-        numeric_string.split(" ").for_each(|s| {
-            if s.contains(".") {
-                is_float = true
-            } else {
-                is_float = false
-            }
-        });
-        if is_float {
-            println!("{}", is_float);
-            process::exit(1);
+        let operator = extract_operator(&string_operation);
+        if utils::is_float(&numeric_string) {
+            float_operation(operator, &numeric_string);
+            return Ok(());
         }
+        //will only return number that is parsable as i32
         let splitted: Vec<_> = numeric_string
             .split(" ")
-            .map(|s| s.parse::<i32>().unwrap())
+            .filter_map(|s| s.parse::<i32>().ok())
             .collect();
+        if splitted.len() < 2 {
+            return Err("The operand must be at the same data type".into());
+        }
 
-        //println!("{:?}", splitted);
-        let operator = extract_operator(&string_operation);
-        //println!("{:?}", operator);
         match operator {
             Add(_a) => {
                 println!("{}", splitted.iter().sum::<i32>());
@@ -230,11 +230,46 @@ pub mod core {
                 }
                 println!("{}", result);
             }
-            _ => {}
         }
         Ok(())
     }
     fn perform_operation() {}
+    fn float_operation(operator: Operator, numeric_string: &str) {
+        let splitted: Vec<_> = numeric_string
+            .split(" ")
+            .filter_map(|s| s.parse::<f32>().ok())
+            .collect();
+        let mut split_iter = splitted.into_iter();
+        match operator {
+            Add(_a) => {
+                println!("{}", split_iter.sum::<f32>());
+            }
+            Multiply(_m) => {
+                println!("{}", split_iter.product::<f32>());
+            }
+            Substract(_s) => {
+                let mut difference: f32 = split_iter.next().unwrap();
+                for element in split_iter {
+                    difference -= element;
+                }
+                println!("{}", difference);
+            }
+            Divide(_d) => {
+                let mut qoutient: f32 = split_iter.next().unwrap();
+                for element in split_iter {
+                    qoutient /= element;
+                }
+                println!("{}", qoutient);
+            }
+            Modulo(_mo) => {
+                let mut result: f32 = split_iter.next().unwrap();
+                for element in split_iter {
+                    result %= element;
+                }
+                println!("{}", result);
+            }
+        }
+    }
     fn extract_operator(string_operation: &str) -> Operator {
         let operator: String = string_operation
             .chars()
