@@ -15,6 +15,8 @@ CSC-109 MiniProgramming Project
 -nesting the print("") syntax is forbidden, eg: print("print("")"). 
 
 -print("print()") is allowed
+
+-only basic operation is allowed and must be two operand at a time.
 ## Authors
 
 - [@g6i1o0](https://github.com/g610g)
